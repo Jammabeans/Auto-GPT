@@ -5,18 +5,39 @@ from config import Config
 cfg = Config()
 import gtts
 
-
-# TODO: Nicer names for these ids
-voices = ["ErXwobaYiN019PkySvjV", "EXAVITQu4vr4xnSDxMaL"]
+# Updated voices list
+voices = [
+    {"name": "Rachel", "voice_id": "21m00Tcm4TlvDq8ikWAM"},
+    {"name": "Domi", "voice_id": "AZnzlk1XvdvUeBnXmlld"},
+    {"name": "Bella", "voice_id": "EXAVITQu4vr4xnSDxMaL"},
+    {"name": "Antoni", "voice_id": "ErXwobaYiN019PkySvjV"},
+    {"name": "Elli", "voice_id": "MF3mGyEYCl7XYWbV9V6O"},
+    {"name": "Josh", "voice_id": "TxGEqnHWrfWFTfGW9XjX"},
+    {"name": "Arnold", "voice_id": "VR6AewLTigWG4xSOukaG"},
+    {"name": "Adam", "voice_id": "pNInz6obpgDQGcFmaJgB"},
+    {"name": "Sam", "voice_id": "yoZ06aMxZJJ28mfd3POQ"}
+]
 
 tts_headers = {
     "Content-Type": "application/json",
     "xi-api-key": cfg.elevenlabs_api_key
 }
 
-def eleven_labs_speech(text, voice_index=0):
+# Function to get the voice id by name
+def get_voice_id_by_name(name):
+    for voice in voices:
+        if voice["name"] == name:
+            return voice["voice_id"]
+    return None
+
+def eleven_labs_speech(text, voice_name):
+    voice_id = get_voice_id_by_name(voice_name)
+    if voice_id is None:
+        print("Voice not found")
+        return False
+
     tts_url = "https://api.elevenlabs.io/v1/text-to-speech/{voice_id}".format(
-        voice_id=voices[voice_index])
+        voice_id=voice_id)
     formatted_message = {"text": text}
     response = requests.post(
         tts_url, headers=tts_headers, json=formatted_message)
@@ -38,11 +59,11 @@ def gtts_speech(text):
     playsound("speech.mp3")
     os.remove("speech.mp3")
 
-def say_text(text, voice_index=0):
+def say_text(text, voice_name=os.getenv("VOICE_NAME")):
     if not cfg.elevenlabs_api_key:
         gtts_speech(text)
     else:
-        success = eleven_labs_speech(text)
+        success = eleven_labs_speech(text, voice_name)
         if not success:
             gtts_speech(text)
 

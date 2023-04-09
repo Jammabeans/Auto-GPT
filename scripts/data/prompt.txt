@@ -23,7 +23,13 @@ COMMANDS:
 15. Get Improved Code: "improve_code", args: "suggestions": "<list_of_suggestions>", "code": "<full_code_string>"
 16. Write Tests: "write_tests", args: "code": "<full_code_string>", "focus": "<list_of_focus_areas>"
 17. Execute Python File: "execute_python_file", args: "file": "<file>"
-18. Task Complete (Shutdown): "task_complete", args: "reason": "<reason>"
+18. Run Local Blockchain: "run_local_blockchain", args: "port": "<port>"
+19. Compile Solidity Contract: "compile_solidity_contract", args: "contract_source": "<contract_source>"
+20. Deploy Contract: "deploy_contract", args: "w3": "<w3_instance>", "contract_interface": "<contract_interface>", "address": "<address>", "private_key": "<private_key>"
+21. Interact With Contract: "interact_with_contract", args: "w3": "<w3_instance>", "contract_address": "<contract_address>", "contract_abi": "<contract_abi>", "address": "<address>", "private_key": "<private_key>", "function_name": "<function_name>", "args": "<list_of_args>"
+22. Run Tests: "run_tests", args: "test_file": "<test_file>"
+23. Task Complete (Shutdown): "task_complete", args: "reason": "<reason>"
+
 
 RESOURCES:
 

@@ -12,6 +12,10 @@ from json_parser import fix_and_parse_json
 from duckduckgo_search import ddg
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+import subprocess
+from solcx import compile_source
+from web3 import Web3, HTTPProvider
+import pytest
 
 cfg = Config()
 
@@ -43,6 +47,42 @@ def get_command(response):
     except Exception as e:
         return "Error:", str(e)
 
+
+def deploy_contract(w3, contract_interface, address, private_key):
+    contract_abi = contract_interface['abi']
+    contract_bytecode = contract_interface['bin']
+    contract = w3.eth.contract(abi=contract_abi, bytecode=contract_bytecode)
+    nonce = w3.eth.getTransactionCount(address)
+    txn = contract.constructor().buildTransaction({
+        'from': address,
+        'gas': 3000000,
+        'gasPrice': w3.toWei('50', 'gwei'),
+        'nonce': nonce,
+    })
+
+    signed_txn = w3.eth.account.signTransaction(txn, private_key)
+    txn_hash = w3.eth.sendRawTransaction(signed_txn.rawTransaction)
+    txn_receipt = w3.eth.waitForTransactionReceipt(txn_hash)
+    contract_address = txn_receipt['contractAddress']
+
+    return contract_address, contract_abi
+
+def interact_with_contract(w3, contract_address, contract_abi, address, private_key, function_name, *args):
+    contract = w3.eth.contract(address=contract_address, abi=contract_abi)
+    contract_function = contract.functions.__dict__[function_name](*args)
+    nonce = w3.eth.getTransactionCount(address)
+    txn = contract_function.buildTransaction({
+        'from': address,
+        'gas': 3000000,
+        'gasPrice': w3.toWei('50', 'gwei'),
+        'nonce': nonce,
+    })
+
+    signed_txn = w3.eth.account.signTransaction(txn, private_key)
+    txn_hash = w3.eth.sendRawTransaction(signed_txn.rawTransaction)
+    txn_receipt = w3.eth.waitForTransactionReceipt(txn_hash)
+    
+    return txn_receipt
 
 def execute_command(command_name, arguments):
     try:
@@ -96,6 +136,31 @@ def execute_command(command_name, arguments):
             return ai.write_tests(arguments["code"], arguments.get("focus"))
         elif command_name == "execute_python_file":  # Add this command
             return execute_python_file(arguments["file"])
+        elif command_name == "run_local_blockchain":
+            return run_local_blockchain(arguments.get("port", 8545))
+        elif command_name == "compile_solidity_contract":
+            return compile_solidity_contract(arguments["contract_source"])
+        elif command_name == "deploy_contract":
+            return deploy_contract(
+                arguments["w3"],
+                arguments["contract_interface"],
+                arguments["address"],
+                arguments["private_key"],
+            )
+        elif command_name == "interact_with_contract":
+            return interact_with_contract(
+                arguments["w3"],
+                arguments["contract_address"],
+                arguments["contract_abi"],
+                arguments["address"],
+                arguments["private_key"],
+                arguments["function_name"],
+                *arguments["args"],
+            )
+        elif command_name == "run_tests":
+            return run_tests(arguments["test_file"])
+        elif command_name == "execute_python_file":  # Add this command
+            return execute_python_file(arguments["file"])
         elif command_name == "task_complete":
             shutdown()
         else:
@@ -108,6 +173,10 @@ def execute_command(command_name, arguments):
 def get_datetime():
     return "Current date and time: " + \
         datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+def run_local_blockchain(port=8545):
+    ganache_process = subprocess.Popen(['ganache-cli', '-p', str(port)])
+    return ganache_process
 
 
 def google_search(query, num_results=8):
@@ -152,6 +221,11 @@ def google_official_search(query, num_results=8):
     # Return the list of search result URLs
     return search_results_links
 
+def compile_solidity_contract(contract_source):
+    compiled_contract = compile_source(contract_source)
+    contract_interface = compiled_contract.popitem()
+    return contract_interface
+
 def browse_website(url, question):
     summary = get_text_summary(url, question)
     links = get_hyperlinks(url)
@@ -181,6 +255,9 @@ def commit_memory(string):
     mem.permanent_memory.append(string)
     return _text
 
+def run_tests(test_file):
+    result = pytest.main([test_file])
+    return result
 
 def delete_memory(key):
     if key >= 0 and key < len(mem.permanent_memory):
